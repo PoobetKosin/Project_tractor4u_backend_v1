@@ -348,44 +348,66 @@ const CloseJob = async (req, res) => {
 };
 
 
-//
-const orderByID = async (req, res) => {
-    const { orders_id } = req.body;
+//Get order using users_id and orders_start_date
+const GetOrderByUsersID = async (req, res) => {
+    const {
+        orders_users_id,
+    } = req.body;
 
-    // Input validation
-    if (!orders_id) {
-        return res.status(400).send({
-            success: false,
-            message: "orders_id is required"
-        });
-    }
-
-    const query = `SELECT * FROM final_project.orders WHERE orders_id = ?`;
+    const query = `SELECT orders_id, orders_total_price, orders_status, orders_review,
+                    DATE_FORMAT(orders_reserve_date, '%Y-%m-%d') AS orders_reserve_date,
+                    DATE_FORMAT(orders_start_date, '%Y-%m-%d') AS orders_start_date,
+                    DATE_FORMAT(orders_finish_date, '%Y-%m-%d') AS orders_finish_date,
+                    orders_lands_id, orders_users_id, orders_owners_id, orders_size_rai, orders_size_ngan,
+                    orders_payment
+                    FROM final_project.orders
+                    where orders_users_id = ?`;
 
     try {
-        // Execute the query
-        const [rows] = await db.query(query, [orders_id]);
+        const [rows] = await db.query(query, [orders_users_id]);
 
-        // Check if no order was found
         if (!Array.isArray(rows) || rows.length === 0) {
             return res.status(404).send({
-                success: false,
                 message: "No Order found for this orders_id"
             });
         }
-
-        // Return the result
-        res.status(200).send({
-            success: true,
-            message: "Order retrieved successfully",
-            data: rows
-        });
+        res.status(200).send(rows);
 
     } catch (error) {
-        // Handle any unexpected errors
-        console.error(error);
         res.status(500).send({
-            success: false,
+            message: "An error occurred while fetching the order",
+            error: error.message
+        });
+    }
+};
+
+//User status page
+const getOrdersUserStatus = async (req, res) => {
+    const {
+        orders_users_id,
+    } = req.body;
+
+    const query = `SELECT orders_id, users_username, users_image, users_lat, users_lon, orders_status,
+                    DATE_FORMAT(orders_reserve_date, '%Y-%m-%d') AS orders_reserve_date,
+                    DATE_FORMAT(orders_start_date, '%Y-%m-%d') AS orders_start_date,
+                    DATE_FORMAT(orders_finish_date, '%Y-%m-%d') AS orders_finish_date
+                    FROM final_project.orders, final_project.users, final_project.owners
+                    where orders_owners_id = owners_id
+                    and owners_users_id = users_id
+                    and orders_users_id = ?`;
+
+    try {
+        const [rows] = await db.query(query, [orders_users_id]);
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(404).send({
+                message: "No Order found for this orders_id"
+            });
+        }
+        res.status(200).send(rows);
+
+    } catch (error) {
+        res.status(500).send({
             message: "An error occurred while fetching the order",
             error: error.message
         });
@@ -395,6 +417,8 @@ const orderByID = async (req, res) => {
 
 
 
-
-    //
-    module.exports = { GetUserID, GetOwnerID, GetJobByUserId, GetQueueByDate, Resever, GetDateStatus, CloseJob, UpdateDateStatus, GetDateStatus_ID };
+//
+module.exports = {
+    GetUserID, GetOwnerID, GetJobByUserId, GetQueueByDate, Resever, GetDateStatus, CloseJob, UpdateDateStatus, GetDateStatus_ID
+    , GetOrderByUsersID, getOrdersUserStatus
+};
